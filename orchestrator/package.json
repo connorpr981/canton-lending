@@ -1,0 +1,27 @@
+{
+  "name": "lending-orchestrator",
+  "version": "0.0.1",
+  "description": "Canton Lending Platform CLI Orchestrator",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "cli": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "cd daml.js/canton-lending-0.0.1 && npm install --legacy-peer-deps"
+  },
+  "dependencies": {
+    "@daml/ledger": "2.10.2",
+    "@daml/types": "2.10.2",
+    "@daml.js/canton-lending": "file:daml.js/canton-lending-0.0.1",
+    "commander": "^12.0.0",
+    "jsonwebtoken": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.3.0"
+  }
+}

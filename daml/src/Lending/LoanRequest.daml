@@ -1,0 +1,62 @@
+-- | LoanRequest template implementing the Propose-Accept pattern
+-- Borrower proposes loan terms, Lender can Accept or Reject
+module Lending.LoanRequest where
+
+import Lending.Types
+import Lending.Loan
+import DA.Date (addDays)
+
+-- | A loan request created by a borrower, awaiting lender decision
+template LoanRequest
+  with
+    borrower : Party         -- ^ The party requesting the loan
+    lender : Party           -- ^ The party being asked to lend
+    asset : Text             -- ^ Asset type (e.g., "USD", "USDCx")
+    principal : Decimal      -- ^ Amount requested
+    interestRate : Decimal   -- ^ Annual rate as decimal (0.05 = 5%)
+    termDays : Int           -- ^ Loan duration in days
+    requestDate : Date       -- ^ Date the request was created
+  where
+    -- Borrower creates the request (single signatory)
+    signatory borrower
+
+    -- Lender must see the request to act on it
+    observer lender
+
+    -- Ensure valid loan terms
+    ensure principal > 0.0
+        && interestRate >= 0.0
+        && termDays > 0
+
+    -- | Lender accepts the request, creating a Loan contract
+    -- This requires lender's authorization (controller)
+    choice Accept : ContractId Loan
+      controller lender
+      do
+        -- Calculate due date based on term
+        let dueDate = addDays requestDate termDays
+        -- Calculate simple interest for the term
+        let interest = principal * interestRate * (intToDecimal termDays / 365.0)
+
+        -- Create Loan with both parties as signatories
+        create Loan with
+          borrower
+          lender
+          asset
+          principal
+          interest
+          startDate = requestDate
+          dueDate
+          status = Proposed
+
+    -- | Lender rejects the request, archiving it
+    choice Reject : ()
+      controller lender
+      do
+        return ()
+
+    -- | Borrower can cancel their own request before it's acted upon
+    choice Cancel : ()
+      controller borrower
+      do
+        return ()

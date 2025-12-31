@@ -1,0 +1,13 @@
+-- | Shared data types for the Canton Lending Platform
+module Lending.Types where
+
+-- | Loan status follows a strict state machine:
+-- Proposed -> Funded -> Repaid -> Closed
+-- With Rejected as terminal state from Proposed
+data LoanStatus
+  = Proposed    -- ^ Loan request accepted, awaiting funding
+  | Funded      -- ^ Principal disbursed to borrower
+  | Repaid      -- ^ Borrower has repaid principal + interest
+  | Closed      -- ^ Final settlement complete
+  | Rejected    -- ^ Lender rejected the request
+  deriving (Eq, Show)
