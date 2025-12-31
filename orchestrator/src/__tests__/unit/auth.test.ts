@@ -24,8 +24,8 @@ describe('Auth', () => {
       const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
 
       expect(payload.sub).toBe('alice');
-      expect(payload['https://daml.com/ledger-api'].actAs).toContain('alice');
-      expect(payload['https://daml.com/ledger-api'].readAs).toContain('alice');
+      expect(payload.actAs).toContain('alice');
+      expect(payload.readAs).toContain('alice');
     });
   });
 });
