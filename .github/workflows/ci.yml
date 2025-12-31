@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  daml:
+    name: DAML Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup DAML SDK
+        uses: digital-asset/setup-daml@v2
+        with:
+          daml-version: 3.4.9
+
+      - name: Build DAML contracts
+        run: cd daml && daml build
+
+      - name: Run DAML tests
+        run: cd daml && daml test
+
+  typescript:
+    name: TypeScript Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: orchestrator/package-lock.json
+
+      - name: Setup DAML SDK (for codegen)
+        uses: digital-asset/setup-daml@v2
+        with:
+          daml-version: 3.4.9
+
+      - name: Build DAML contracts
+        run: cd daml && daml build
+
+      - name: Generate TypeScript bindings
+        run: cd daml && daml codegen js -o ../orchestrator/daml.js .daml/dist/canton-lending-0.0.1.dar
+
+      - name: Install dependencies
+        run: cd orchestrator && npm ci
+
+      - name: Lint
+        run: cd orchestrator && npm run lint
+
+      - name: Type check
+        run: cd orchestrator && npm run typecheck
+
+      - name: Run tests
+        run: cd orchestrator && npm test
+
+      - name: Build
+        run: cd orchestrator && npm run build

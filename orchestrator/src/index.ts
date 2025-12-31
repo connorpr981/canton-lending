@@ -18,8 +18,12 @@ import { createLedgerClient, getLedgerConfig } from './client/ledger.js';
 import { createLoanRequest } from './commands/request.js';
 import { acceptLoanRequest, rejectLoanRequest } from './commands/approve.js';
 import { fundLoan } from './commands/fund.js';
-import { repayLoan } from './commands/repay.js';
+import { repayLoan, makePayment } from './commands/repay.js';
 import { closeLoan } from './commands/close.js';
+import { defaultLoan } from './commands/default.js';
+import { displayBalance } from './commands/balance.js';
+import { acceptAmendment, rejectAmendment, withdrawAmendment } from './commands/amend.js';
+import { watchContracts, WatchType } from './commands/watch.js';
 import {
   queryLoanRequests,
   queryLoans,
@@ -146,11 +150,121 @@ program
   .description('Repay a funded loan (borrower action)')
   .requiredOption('--borrower <partyId>', 'Borrower party ID')
   .requiredOption('--contract <contractId>', 'Loan contract ID')
+  .option('--amount <amount>', 'Partial repayment amount (optional, defaults to full)')
   .action(async (options) => {
     try {
       const config = getLedgerConfig();
       const ledger = createLedgerClient(options.borrower, config);
-      await repayLoan(ledger, options.contract);
+      if (options.amount) {
+        await makePayment(ledger, options.contract, options.amount);
+      } else {
+        await repayLoan(ledger, options.contract);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('default')
+  .description('Mark an overdue loan as defaulted (lender action)')
+  .requiredOption('--lender <partyId>', 'Lender party ID')
+  .requiredOption('--contract <contractId>', 'Loan contract ID')
+  .option('--date <date>', 'Current date (ISO format, defaults to today)')
+  .action(async (options) => {
+    try {
+      const config = getLedgerConfig();
+      const ledger = createLedgerClient(options.lender, config);
+      await defaultLoan(ledger, options.contract, options.date);
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('balance')
+  .description('Get balance information for a loan')
+  .requiredOption('--party <partyId>', 'Party ID (borrower or lender)')
+  .requiredOption('--contract <contractId>', 'Loan contract ID')
+  .action(async (options) => {
+    try {
+      const config = getLedgerConfig();
+      const ledger = createLedgerClient(options.party, config);
+      await displayBalance(ledger, options.contract);
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+// ============================================
+// Amendment Commands
+// ============================================
+
+program
+  .command('accept-amendment')
+  .description('Accept an amendment proposal (counterparty action)')
+  .requiredOption('--party <partyId>', 'Your party ID')
+  .requiredOption('--contract <contractId>', 'Amendment proposal contract ID')
+  .action(async (options) => {
+    try {
+      const config = getLedgerConfig();
+      const ledger = createLedgerClient(options.party, config);
+      await acceptAmendment(ledger, options.contract);
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('reject-amendment')
+  .description('Reject an amendment proposal (counterparty action)')
+  .requiredOption('--party <partyId>', 'Your party ID')
+  .requiredOption('--contract <contractId>', 'Amendment proposal contract ID')
+  .action(async (options) => {
+    try {
+      const config = getLedgerConfig();
+      const ledger = createLedgerClient(options.party, config);
+      await rejectAmendment(ledger, options.contract);
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('withdraw-amendment')
+  .description('Withdraw your amendment proposal (proposer action)')
+  .requiredOption('--party <partyId>', 'Your party ID')
+  .requiredOption('--contract <contractId>', 'Amendment proposal contract ID')
+  .action(async (options) => {
+    try {
+      const config = getLedgerConfig();
+      const ledger = createLedgerClient(options.party, config);
+      await withdrawAmendment(ledger, options.contract);
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+// ============================================
+// Streaming Commands
+// ============================================
+
+program
+  .command('watch')
+  .description('Watch for contract updates in real-time')
+  .requiredOption('--party <partyId>', 'Party ID to watch as')
+  .option('--type <type>', 'Type to watch: loans, requests, all', 'all')
+  .action(async (options) => {
+    try {
+      const config = getLedgerConfig();
+      const ledger = createLedgerClient(options.party, config);
+      await watchContracts(ledger, options.type as WatchType);
     } catch (error) {
       console.error('Error:', error);
       process.exit(1);

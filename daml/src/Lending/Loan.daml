@@ -7,22 +7,24 @@ import DA.Assert ((===))
 
 -- | Main Loan contract with state machine transitions
 -- State machine: Proposed -> Funded -> Repaid -> Closed
+-- With Defaulted as terminal state from Funded
 template Loan
   with
-    borrower : Party     -- ^ The party receiving the loan
-    lender : Party       -- ^ The party providing the loan
-    asset : Text         -- ^ Asset type (e.g., "USD", "USDCx")
-    principal : Decimal  -- ^ Loan principal amount
-    interest : Decimal   -- ^ Calculated interest amount
-    startDate : Date     -- ^ Loan start date
-    dueDate : Date       -- ^ Loan due date
-    status : LoanStatus  -- ^ Current state of the loan
+    borrower : Party       -- ^ The party receiving the loan
+    lender : Party         -- ^ The party providing the loan
+    asset : Text           -- ^ Asset type (e.g., "USD", "USDCx")
+    principal : Decimal    -- ^ Loan principal amount
+    interest : Decimal     -- ^ Calculated interest amount
+    startDate : Date       -- ^ Loan start date
+    dueDate : Date         -- ^ Loan due date
+    status : LoanStatus    -- ^ Current state of the loan
+    amountRepaid : Decimal -- ^ Cumulative amount repaid (for partial repayments)
   where
     -- Both parties must agree to loan terms (bilateral agreement)
     signatory lender, borrower
 
     -- Ensure non-negative amounts
-    ensure principal > 0.0 && interest >= 0.0
+    ensure principal > 0.0 && interest >= 0.0 && amountRepaid >= 0.0
 
     -- | Lender funds the loan (Proposed -> Funded)
     -- In production, this would integrate with token transfers
@@ -37,17 +39,40 @@ template Loan
 
         create this with status = Funded
 
-    -- | Borrower repays principal + interest (Funded -> Repaid)
+    -- | Borrower makes a partial or full repayment (Funded -> Funded or Repaid)
+    -- Replaces the old Repay choice with support for partial payments
+    choice MakePayment : ContractId Loan
+      with
+        amount : Decimal  -- ^ Amount being repaid
+      controller borrower
+      do
+        -- Guard: Can only repay if Funded
+        status === Funded
+        -- Must pay a positive amount
+        assertMsg "Payment amount must be positive" (amount > 0.0)
+
+        let totalDue = principal + interest
+        let newAmountRepaid = amountRepaid + amount
+
+        -- Cannot overpay
+        assertMsg "Cannot overpay the loan" (newAmountRepaid <= totalDue)
+
+        -- If fully repaid, transition to Repaid status
+        if newAmountRepaid >= totalDue
+          then create this with status = Repaid, amountRepaid = newAmountRepaid
+          else create this with amountRepaid = newAmountRepaid
+
+    -- | Legacy full repayment choice (for backwards compatibility)
+    -- Pays remaining balance in full
     choice Repay : ContractId Loan
       controller borrower
       do
         -- Guard: Can only repay if Funded
         status === Funded
 
-        -- In production: verify token transfer of (principal + interest)
-        -- For MVP: we trust the borrower's attestation
-
-        create this with status = Repaid
+        -- Pay remaining balance
+        let totalDue = principal + interest
+        create this with status = Repaid, amountRepaid = totalDue
 
     -- | Lender confirms receipt and closes (Repaid -> Closed)
     -- This is the final state - contract is archived
@@ -60,8 +85,28 @@ template Loan
         -- Contract is archived (consumed), ending the relationship
         return ()
 
+    -- | Lender marks loan as defaulted (Funded -> Defaulted)
+    -- Can only be exercised after due date
+    choice Default : ContractId Loan
+      with
+        currentDate : Date  -- ^ Caller attests current date
+      controller lender
+      do
+        -- Guard: Can only default if Funded
+        status === Funded
+        -- Guard: Loan must be past due date
+        assertMsg "Loan is not yet past due date" (currentDate > dueDate)
+
+        create this with status = Defaulted
+
     -- | Helper to get total amount due (principal + interest)
     nonconsuming choice GetAmountDue : Decimal
       controller borrower, lender
       do
         return (principal + interest)
+
+    -- | Helper to get remaining balance
+    nonconsuming choice GetRemainingBalance : Decimal
+      controller borrower, lender
+      do
+        return (principal + interest - amountRepaid)

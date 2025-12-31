@@ -10,7 +10,8 @@ const { Lending } = require('@daml.js/canton-lending');
 const Loan = Lending.Loan.Loan;
 
 /**
- * Repay a loan (Funded -> Repaid)
+ * Repay a loan in full (Funded -> Repaid)
+ * Uses legacy Repay choice for full repayment
  */
 export async function repayLoan(
   ledger: any,
@@ -23,6 +24,28 @@ export async function repayLoan(
     return result;
   } catch (error) {
     console.error('Failed to repay loan:', error);
+    throw error;
+  }
+}
+
+/**
+ * Make a partial or full payment on a loan
+ * Uses MakePayment choice which supports partial repayments
+ */
+export async function makePayment(
+  ledger: any,
+  contractId: string,
+  amount: string
+): Promise<string> {
+  try {
+    const [result] = await ledger.exercise(Loan.MakePayment, contractId, {
+      amount,
+    });
+
+    console.log(`Payment of ${amount} made. New contract: ${result}`);
+    return result;
+  } catch (error) {
+    console.error('Failed to make payment:', error);
     throw error;
   }
 }

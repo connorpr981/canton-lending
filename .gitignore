@@ -31,3 +31,6 @@ npm-debug.log*
 
 # Build artifacts
 *.tsbuildinfo
+
+# Test coverage
+orchestrator/coverage/

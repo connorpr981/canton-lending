@@ -48,6 +48,7 @@ template LoanRequest
           startDate = requestDate
           dueDate
           status = Proposed
+          amountRepaid = 0.0  -- No payments made yet
 
     -- | Lender rejects the request, archiving it
     choice Reject : ()

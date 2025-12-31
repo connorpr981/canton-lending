@@ -1,0 +1,80 @@
+-- | Loan Amendment template for proposing changes to loan terms
+-- Implements a bilateral approval pattern for term modifications
+module Lending.LoanAmendment where
+
+import Lending.Types
+import Lending.Loan
+import DA.Optional (fromOptional)
+import DA.Date (addDays)
+
+-- | A proposal to amend loan terms (only valid before funding)
+template LoanAmendmentProposal
+  with
+    originalLoanId : ContractId Loan  -- ^ Reference to the loan being amended
+    proposer : Party                   -- ^ Party proposing the amendment
+    counterparty : Party               -- ^ Party who must approve
+    borrower : Party                   -- ^ Original borrower
+    lender : Party                     -- ^ Original lender
+    asset : Text                       -- ^ Asset type from original loan
+    -- Original values (for reference)
+    originalPrincipal : Decimal
+    originalInterest : Decimal
+    originalDueDate : Date
+    -- Proposed changes (None means keep original)
+    newPrincipal : Optional Decimal
+    newInterestRate : Optional Decimal  -- ^ New rate to recalculate interest
+    newTermDays : Optional Int          -- ^ New term to recalculate due date
+    startDate : Date                    -- ^ Loan start date (for calculations)
+  where
+    signatory proposer
+    observer counterparty
+
+    -- Ensure valid proposed changes
+    ensure
+      (fromOptional originalPrincipal newPrincipal > 0.0)
+
+    -- | Counterparty accepts the amendment
+    -- Archives original loan and creates new one with amended terms
+    choice AcceptAmendment : ContractId Loan
+      controller counterparty
+      do
+        -- Archive original loan
+        archive originalLoanId
+
+        -- Calculate new values
+        let finalPrincipal = fromOptional originalPrincipal newPrincipal
+        let finalTermDays = fromOptional 30 newTermDays  -- Default to 30 days if not specified
+
+        -- Recalculate interest if rate changed
+        let finalInterest = case newInterestRate of
+              Some rate -> finalPrincipal * rate * (intToDecimal finalTermDays / 365.0)
+              None -> originalInterest
+
+        -- Recalculate due date if term changed
+        let finalDueDate = case newTermDays of
+              Some days -> addDays startDate days
+              None -> originalDueDate
+
+        -- Create amended loan
+        create Loan with
+          borrower
+          lender
+          asset
+          principal = finalPrincipal
+          interest = finalInterest
+          startDate
+          dueDate = finalDueDate
+          status = Proposed
+          amountRepaid = 0.0
+
+    -- | Counterparty rejects the amendment
+    choice RejectAmendment : ()
+      controller counterparty
+      do
+        return ()
+
+    -- | Proposer withdraws their amendment proposal
+    choice WithdrawAmendment : ()
+      controller proposer
+      do
+        return ()

@@ -4,10 +4,12 @@ module Lending.Types where
 -- | Loan status follows a strict state machine:
 -- Proposed -> Funded -> Repaid -> Closed
 -- With Rejected as terminal state from Proposed
+-- With Defaulted as terminal state from Funded (past due date)
 data LoanStatus
   = Proposed    -- ^ Loan request accepted, awaiting funding
   | Funded      -- ^ Principal disbursed to borrower
   | Repaid      -- ^ Borrower has repaid principal + interest
   | Closed      -- ^ Final settlement complete
   | Rejected    -- ^ Lender rejected the request
+  | Defaulted   -- ^ Loan past due date without full repayment
   deriving (Eq, Show)

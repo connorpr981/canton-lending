@@ -115,6 +115,32 @@ list-loans party status="":
         cd orchestrator && npm run cli -- list-loans --party {{party}}
     fi
 
+# === New Feature Commands ===
+
+# Make a partial payment on a loan (borrower action)
+pay borrower contract amount:
+    cd orchestrator && npm run cli -- repay --borrower {{borrower}} --contract {{contract}} --amount {{amount}}
+
+# Mark a loan as defaulted (lender action, after due date)
+default lender contract:
+    cd orchestrator && npm run cli -- default --lender {{lender}} --contract {{contract}}
+
+# Get balance information for a loan
+balance party contract:
+    cd orchestrator && npm run cli -- balance --party {{party}} --contract {{contract}}
+
+# Accept an amendment proposal
+accept-amendment party contract:
+    cd orchestrator && npm run cli -- accept-amendment --party {{party}} --contract {{contract}}
+
+# Reject an amendment proposal
+reject-amendment party contract:
+    cd orchestrator && npm run cli -- reject-amendment --party {{party}} --contract {{contract}}
+
+# Watch for contract updates in real-time
+watch party type="all":
+    cd orchestrator && npm run cli -- watch --party {{party}} --type {{type}}
+
 # === Development ===
 
 # Clean build artifacts
@@ -124,6 +150,7 @@ clean:
     rm -rf orchestrator/daml.js
     rm -rf orchestrator/node_modules
     rm -rf orchestrator/dist
+    rm -rf orchestrator/coverage
 
 # Rebuild everything from scratch
 rebuild: clean setup
@@ -131,6 +158,33 @@ rebuild: clean setup
 # Type-check TypeScript
 typecheck:
     cd orchestrator && npm run typecheck
+
+# Lint TypeScript code
+lint:
+    cd orchestrator && npm run lint
+
+# Fix linting issues
+lint-fix:
+    cd orchestrator && npm run lint:fix
+
+# Format TypeScript code
+format:
+    cd orchestrator && npm run format
+
+# Check formatting
+format-check:
+    cd orchestrator && npm run format:check
+
+# Run TypeScript tests
+test-ts:
+    cd orchestrator && npm test
+
+# Run TypeScript tests with coverage
+test-coverage:
+    cd orchestrator && npm run test:coverage
+
+# Run all tests (DAML + TypeScript)
+test-all: test test-ts
 
 # === Help ===
 

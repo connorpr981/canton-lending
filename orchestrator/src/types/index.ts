@@ -10,7 +10,7 @@
 
 // Manual type definitions (until codegen runs)
 
-export type LoanStatus = 'Proposed' | 'Funded' | 'Repaid' | 'Closed' | 'Rejected';
+export type LoanStatus = 'Proposed' | 'Funded' | 'Repaid' | 'Closed' | 'Rejected' | 'Defaulted';
 
 export interface LoanRequest {
   borrower: string;
@@ -31,6 +31,7 @@ export interface Loan {
   startDate: string;
   dueDate: string;
   status: LoanStatus;
+  amountRepaid: string;
 }
 
 export interface ContractInfo<T> {

@@ -1,0 +1,5 @@
+dist/
+daml.js/
+coverage/
+node_modules/
+*.json

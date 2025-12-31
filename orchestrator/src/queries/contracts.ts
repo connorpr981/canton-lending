@@ -93,15 +93,22 @@ export function formatLoans(loans: ContractInfo<LoanType>[]): void {
 
   console.log('\n=== Loans ===\n');
   for (const loan of loans) {
+    const totalDue = parseFloat(loan.payload.principal) + parseFloat(loan.payload.interest);
+    const amountRepaid = parseFloat(loan.payload.amountRepaid || '0');
+    const remaining = totalDue - amountRepaid;
+
     console.log(`Contract ID: ${loan.contractId}`);
-    console.log(`  Borrower:   ${loan.payload.borrower}`);
-    console.log(`  Lender:     ${loan.payload.lender}`);
-    console.log(`  Asset:      ${loan.payload.asset}`);
-    console.log(`  Principal:  ${loan.payload.principal}`);
-    console.log(`  Interest:   ${loan.payload.interest}`);
-    console.log(`  Start Date: ${loan.payload.startDate}`);
-    console.log(`  Due Date:   ${loan.payload.dueDate}`);
-    console.log(`  Status:     ${loan.payload.status}`);
+    console.log(`  Borrower:      ${loan.payload.borrower}`);
+    console.log(`  Lender:        ${loan.payload.lender}`);
+    console.log(`  Asset:         ${loan.payload.asset}`);
+    console.log(`  Principal:     ${loan.payload.principal}`);
+    console.log(`  Interest:      ${loan.payload.interest}`);
+    console.log(`  Total Due:     ${totalDue.toFixed(2)}`);
+    console.log(`  Amount Repaid: ${amountRepaid.toFixed(2)}`);
+    console.log(`  Remaining:     ${remaining.toFixed(2)}`);
+    console.log(`  Start Date:    ${loan.payload.startDate}`);
+    console.log(`  Due Date:      ${loan.payload.dueDate}`);
+    console.log(`  Status:        ${loan.payload.status}`);
     console.log('');
   }
 }
