@@ -13,16 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup DAML SDK
-        uses: digital-asset/setup-daml@v2
-        with:
-          daml-version: 3.4.9
+      - name: Install DAML SDK
+        run: |
+          curl -sSL https://get.daml.com/ | sh -s 3.4.9
+          echo "$HOME/.daml/bin" >> $GITHUB_PATH
 
       - name: Build DAML contracts
-        run: cd daml && daml build
+        run: cd daml && ~/.daml/bin/daml build
 
       - name: Run DAML tests
-        run: cd daml && daml test
+        run: cd daml && ~/.daml/bin/daml test
 
   typescript:
     name: TypeScript Build & Test
@@ -37,16 +37,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: orchestrator/package-lock.json
 
-      - name: Setup DAML SDK (for codegen)
-        uses: digital-asset/setup-daml@v2
-        with:
-          daml-version: 3.4.9
+      - name: Install DAML SDK
+        run: |
+          curl -sSL https://get.daml.com/ | sh -s 3.4.9
+          echo "$HOME/.daml/bin" >> $GITHUB_PATH
 
       - name: Build DAML contracts
-        run: cd daml && daml build
+        run: cd daml && ~/.daml/bin/daml build
 
       - name: Generate TypeScript bindings
-        run: cd daml && daml codegen js -o ../orchestrator/daml.js .daml/dist/canton-lending-0.0.1.dar
+        run: cd daml && ~/.daml/bin/daml codegen js -o ../orchestrator/daml.js .daml/dist/canton-lending-0.0.1.dar
 
       - name: Install dependencies
         run: cd orchestrator && npm ci
