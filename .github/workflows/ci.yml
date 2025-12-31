@@ -49,7 +49,7 @@ jobs:
         run: cd daml && ~/.daml/bin/daml codegen js -o ../orchestrator/daml.js .daml/dist/canton-lending-0.0.1.dar
 
       - name: Install dependencies
-        run: cd orchestrator && npm ci
+        run: cd orchestrator && npm install
 
       - name: Lint
         run: cd orchestrator && npm run lint
